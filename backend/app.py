@@ -1,20 +1,9 @@
-from flask import Flask, request, jsonify
 import jwt
 from datetime import datetime, timedelta, timezone
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from bson.objectid import ObjectId
 import bcrypt
-
-# Importamos CORS para permitir peticiones desde cualquier origen
-
-from flask_cors import CORS
-
-app = Flask(__name__)
-
-# Permitimos peticiones desde cualquier origen
-
-CORS(app)
 
 class UserManager:
     def __init__(self, uri):
@@ -80,37 +69,24 @@ class UserManager:
         except jwt.InvalidTokenError:
             return False, "Token inválido."
 
-@app.route('/registro', methods=['POST'])
-def registro():
-    datos = request.get_json()
-    nombre_usuario = datos.get('nombre_usuario')
-    contraseña = datos.get('contraseña')
+# Uso de la clase UserManager
+uri = "mongodb+srv://mongodbuser:mongodbpassword@firmasdigitalesjwt.bci9p39.mongodb.net/?retryWrites=true&w=majority&appName=FirmasDigitalesJWT"
+user_manager = UserManager(uri)
 
-    print(f"El nombre de usuario es: {nombre_usuario} con la contraseña: {contraseña}")
+# # Ejemplo de creación de usuario
+creado_exitosamente, mensaje = user_manager.crear_usuario("usuario_prueba_3", "contraseña_prueba_3")
+print(mensaje)
 
-    creado_exitosamente, mensaje = user_manager.crear_usuario(nombre_usuario, contraseña)
-    return jsonify({"creado_exitosamente": creado_exitosamente, "mensaje": mensaje})
+# Ejemplo de autenticación de usuario
+autenticado, mensaje = user_manager.autenticar_usuario("usuario_prueba_3", "contraseña_prueba_3")
+print(mensaje)
 
-@app.route('/autenticacion', methods=['POST'])
-def autenticacion():
-    datos = request.get_json()
-    nombre_usuario = datos.get('nombre_usuario')
-    contraseña = datos.get('contraseña')
-    autenticado, mensaje = user_manager.autenticar_usuario(nombre_usuario, contraseña)
-    if autenticado:
-        token = user_manager.generar_token_jwt(nombre_usuario)
-        return jsonify({"autenticado": autenticado, "mensaje": mensaje, "token": token})
-    else:
-        return jsonify({"autenticado": autenticado, "mensaje": mensaje})
-
-@app.route('/verificacion', methods=['POST'])
-def verificacion():
-    datos = request.get_json()
-    token = datos.get('token')
+# Ejemplo de generación y verificación de token JWT
+if autenticado:
+    token = user_manager.generar_token_jwt("usuario_prueba")
+    print("Token JWT generado:", token)
     verificado, user_id = user_manager.verificar_token_jwt(token)
-    return jsonify({"verificado": verificado, "user_id": user_id})
-
-if __name__ == '__main__':
-    uri = "mongodb+srv://mongodbuser:mongodbpassword@firmasdigitalesjwt.bci9p39.mongodb.net/?retryWrites=true&w=majority&appName=FirmasDigitalesJWT"
-    user_manager = UserManager(uri)
-    app.run(debug=True)
+    if verificado:
+        print("Token JWT verificado. ID de usuario:", user_id)
+    else:
+        print("Error al verificar el token JWT.")
